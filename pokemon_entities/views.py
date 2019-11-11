@@ -6,6 +6,8 @@ from django.shortcuts import render
 
 from .models import Pokemon, PokemonEntity
 from django.shortcuts import get_object_or_404
+from contextlib import suppress
+from django.core.exceptions import ObjectDoesNotExist
 
 
 MOSCOW_CENTER = [55.751244, 37.618423]
@@ -63,7 +65,7 @@ def show_pokemon(request, pokemon_id):
     pokemon = get_object_or_404(Pokemon, id=pokemon_id)
 
     folium_map = folium.Map(location=MOSCOW_CENTER, zoom_start=12)
-    for pokemon_entity in pokemon.pokemon_entity.all():
+    for pokemon_entity in pokemon.pokemon_entities.all():
         if pokemon.image:
             add_pokemon(
                 folium_map, pokemon_entity.lat, pokemon_entity.lon,
@@ -91,16 +93,14 @@ def show_pokemon(request, pokemon_id):
         if pokemon.previous_evolution.image:
             pokemon_data['previous_evolution']['img_url'] = pokemon.previous_evolution.image.url
 
-    try:
-        next_evolution = pokemon.next_evolution.all()[0]
+    with suppress(IndexError, ObjectDoesNotExist):
+        next_evolution = pokemon.next_evolutions.all()[0]
         pokemon_data['next_evolution'] = {
             'title_ru': next_evolution.title,
             'pokemon_id': next_evolution.id,
         }
         if next_evolution.image:
             pokemon_data['next_evolution']['img_url'] = next_evolution.image.url
-    except:
-        pass
 
     return render(request, "pokemon.html", context={'map': folium_map._repr_html_(),
                                                     'pokemon': pokemon_data})
